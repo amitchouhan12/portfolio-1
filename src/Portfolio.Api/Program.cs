@@ -1,7 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase("portfolio"));
 var app = builder.Build();
+app.UseSwagger();
+app.UseSwaggerUI();
 Seed(app);
 
 app.MapGet("/api/orders/{id:int}", async (int id, AppDbContext db) => {
@@ -34,7 +38,34 @@ app.MapGet("/api/search", async (string? customer, AppDbContext db) => {
 app.MapGet("/api/health", () => Results.Ok(new { status = "healthy", utc = DateTime.UtcNow }));
 app.Run();
 
-static void Seed(WebApplication app) { using var s = app.Services.CreateScope(); var db=s.ServiceProvider.GetRequiredService<AppDbContext>(); if(!db.Orders.Any()){db.Orders.AddRange(new Order{Customer="Asha",Total=1499,Status="Paid"},new Order{Customer="Ravi",Total=799,Status="Pending"},new Order{Customer="Neha",Total=2499,Status="Paid"});db.SaveChanges();} }
+static void Seed(WebApplication app)
+{
+    using var s = app.Services.CreateScope();
+    var db = s.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    if (!db.Orders.Any())
+    {
+        db.Orders.AddRange(
+            new Order { Customer = "Asha", Total = 1499, Status = "Paid" },
+            new Order { Customer = "Ravi", Total = 799, Status = "Pending" },
+            new Order { Customer = "Neha", Total = 2499, Status = "Paid" }
+        );
+    }
+
+    foreach (var order in db.Orders.Local)
+    {
+        order.CustomerNormalized = order.Customer.Trim().ToUpperInvariant();
+    }
+
+    db.SaveChanges();
+}
 
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options) { public DbSet<Order> Orders => Set<Order>(); protected override void OnModelCreating(ModelBuilder b){b.Entity<Order>().Property(x=>x.Total).HasPrecision(18,2); b.Entity<Order>().Property(x=>x.CustomerNormalized).HasMaxLength(200).IsRequired();} }
-public class Order { public int Id{get;set;} public string Customer{get;set;}=""; public string CustomerNormalized{get;set;}=""; public decimal Total{get;set;} public string Status{get;set;}="Pending"; public DateTime CreatedAt{get;set;}=DateTime.UtcNow; public DateTime UpdatedAt{get;set;}=DateTime.UtcNow; }
+public class Order { 
+    public int Id{get;set;} 
+    public string Customer{get;set;}=""; 
+    public string CustomerNormalized{get;set;}=""; 
+    public decimal Total{get;set;} 
+    public string Status{get;set;}="Pending"; 
+    public DateTime CreatedAt{get;set;}=DateTime.UtcNow; 
+    public DateTime UpdatedAt{get;set;}=DateTime.UtcNow; }
