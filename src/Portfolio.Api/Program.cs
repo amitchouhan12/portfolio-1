@@ -38,6 +38,8 @@ app.MapGet("/api/search", async (string? customer, AppDbContext db) => {
 app.MapGet("/api/health", () => Results.Ok(new { status = "healthy", utc = DateTime.UtcNow }));
 app.Run();
 
+
+
 static void Seed(WebApplication app)
 {
     using var s = app.Services.CreateScope();
@@ -69,3 +71,5 @@ public class Order {
     public string Status{get;set;}="Pending"; 
     public DateTime CreatedAt{get;set;}=DateTime.UtcNow; 
     public DateTime UpdatedAt{get;set;}=DateTime.UtcNow; }
+
+public partial class Program { } // for integration tests
